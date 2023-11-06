@@ -13,6 +13,7 @@
 - 代码写好后，在对应script.py文件的路径下打开终端，输入pyinstaller --onefile --windowed --distpath=(script.py的目录) script.py，比如我的script.py所在目录为C:\Users\86139\Desktop\code\GenshinScript，那么我需要输入pyinstaller --onefile --windowed --distpath=C:\Users\86139\Desktop\code\GenshinScript\ script.py，**注意**script.py前的空格不能省！！！经过一分钟后会生成一个build文件夹、一个.spec文件以及一个.exe文件，build文件夹和.spec文件在exe文件生成后就没用了，可以删掉。
 - 如果需要在原神中运行脚本，**必须**要以管理员身份运行.exe文件
 - 游戏内设置中关闭战斗智能镜头与镜头高度自动回正
+- 需要自己先点 单人挑战-开始挑战-停在地脉异常界面-启动脚本-回到游戏-开始睡觉（
 ## 开发日记（2023.11.6）
 去年大一刷了一整年的绝缘本，在每天几乎完全重复的刷本流程中萌生出写一个自动化脚本的想法，不过那个时候还不会python。     
 
