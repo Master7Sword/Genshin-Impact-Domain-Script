@@ -1,25 +1,40 @@
+import numpy as np
 import pyautogui
 import pydirectinput
 import time
 import cv2
+import ResNet
+import torch
 from PIL import ImageGrab
-import numpy as np
+from PIL import Image
 
 #光标移到屏幕边缘默认报错，禁掉
 pyautogui.FAILSAFE = False
 
 #读取模板
-template = cv2.imread('symbol.png',0)
-template2 = cv2.imread('symbol2.png',0)
+template = cv2.imread('symbol.png',0) # 读灰白的就够了
+template2 = cv2.imread('symbol2.png') # 读取RGB图像
 Adeptus_Temptation = cv2.imread('Adeptus_Temptation.png',0)
 Moon_pie = cv2.imread('Moon_pie.png',0)
 
 w,_ = template.shape[::-1]
-w2,_ = template2.shape[::-1]
+h2,w2,_ = template2.shape
 w_Adeptus_Temptation,h_Adeptus_Temptation = Adeptus_Temptation.shape[::-1]
 w_Moon_pie,h_Moon_pie = Moon_pie.shape[::-1]
 
-def centralize(threshold = 0.5,duration = 0.1):
+# 初始化模型
+net = ResNet.net
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+# 加载保存的权重
+model_path = 'best_model_weights.pth'
+net.load_state_dict(torch.load(model_path, map_location=device))
+
+# 设置为评估模式
+net.eval()
+net.to(device)
+
+def centralize(duration = 0.1):
     for _ in range(100):  # 限制循环次数以避免无限运行
         # 捕捉屏幕
         screen = np.array(ImageGrab.grab())
@@ -29,38 +44,37 @@ def centralize(threshold = 0.5,duration = 0.1):
         res = cv2.matchTemplate(gray_screen, template, cv2.TM_CCOEFF_NORMED)
 
         # 获取最佳匹配的位置
-        _, max_val, _, max_loc = cv2.minMaxLoc(res)
-
-        if max_val >= threshold:
-            # 确定中心点
-            torch_center_x = max_loc[0] + w // 2
-            # 计算水平偏移
-            screen_center_x = gray_screen.shape[1] // 2
-            offset_x = torch_center_x - screen_center_x
-            if offset_x == 0:
-                break
-            # 根据偏移水平调整镜头
-            pydirectinput.moveRel(int(offset_x / 2), 0, duration=duration, relative=True)
-        
-def centralize_2nd(duration = 0.1):
-    for _ in range(10):
-        pyautogui.scroll(-200)
-    for _ in range(100):
-        # 捕捉屏幕
-        screen = np.array(ImageGrab.grab())
-        gray_screen = cv2.cvtColor(screen, cv2.COLOR_BGR2GRAY)
-
-        # 模板匹配
-        res = cv2.matchTemplate(gray_screen, template2, cv2.TM_CCOEFF_NORMED)
-
-        # 获取最佳匹配的位置
         _, _, _, max_loc = cv2.minMaxLoc(res)
 
         # 确定中心点
-        torch_center_x = max_loc[0] + w2 // 2
+        torch_center_x = max_loc[0] + w // 2
         # 计算水平偏移
         screen_center_x = gray_screen.shape[1] // 2
         offset_x = torch_center_x - screen_center_x
+        if offset_x == 0:
+            break
+        # 根据偏移水平调整镜头
+        pydirectinput.moveRel(int(offset_x / 2), 0, duration=duration, relative=True)
+        
+def centralize_2nd():
+    for _ in range(100):
+        # 捕获屏幕
+        screen = np.array(ImageGrab.grab())
+        _,width = screen.shape[:2]
+        screen = Image.fromarray(screen)  # 转换为PIL图像
+        screen = ResNet.transform(screen).unsqueeze(0)  # 应用转换并添加批量维度
+        screen = screen.to(device)
+
+        # 使用模型进行预测
+        with torch.no_grad():
+            prediction = net(screen)
+        
+        screen_center_x = width // 2      # 960
+        offset_x = int(prediction[0][0].item() - screen_center_x)
+
+        print(prediction[0][0].item(),screen_center_x)
+        print(offset_x)
+
         if offset_x == 0:
             break
         # 根据偏移水平移动
@@ -70,9 +84,10 @@ def centralize_2nd(duration = 0.1):
         else:
             pyautogui.keyDown('a')
             pyautogui.keyUp('a')
-        pydirectinput.moveRel(int(-offset_x / 80), 0, duration=duration, relative=True)
+        pydirectinput.moveRel(int(offset_x / 40), 0, duration=0.05, relative=True)
         time.sleep(0.1)
 
+  
 def enhancement(threshold = 0.9):
 
     Adeptus_Temptation_eaten = False
@@ -179,8 +194,9 @@ for k in range(8): #160树脂，20一次，共8次
     pyautogui.keyUp('f')
 
     #钟离 E CD 12s，香菱 E CD 12s，五郎 E CD 10s
+    #钟离柱子存在30s
 
-    for i in range(7):
+    for i in range(8):
 
         #钟离开盾
         pyautogui.keyDown('4')
@@ -204,6 +220,14 @@ for k in range(8): #160树脂，20一次，共8次
         pyautogui.keyDown('e')
         pyautogui.keyUp('e')
         time.sleep(1)
+        if i == 3 or i == 4:
+            pydirectinput.moveRel(0, -2100, duration=0.2, relative=True)
+            time.sleep(0.8)
+            pyautogui.keyDown('q')
+            pyautogui.keyUp('q')
+            time.sleep(1.5)
+            pydirectinput.moveRel(0, 2000, duration=0.2, relative=True)
+            time.sleep(0.3)
 
         if i == 1 or i == 5:
             pyautogui.keyDown('2')
@@ -230,7 +254,7 @@ for k in range(8): #160树脂，20一次，共8次
         if i == 5:
             pyautogui.keyDown('q')
             pyautogui.keyUp('q')
-            time.sleep(1.5)
+            time.sleep(2)
             pyautogui.keyDown('e')
             pyautogui.keyUp('e')
             time.sleep(0.2)
@@ -238,10 +262,22 @@ for k in range(8): #160树脂，20一次，共8次
         if i % 2 == 1:
             pyautogui.keyDown('e')
             pyautogui.keyUp('e')
+            time.sleep(1)
+            if i != 7:
+                pyautogui.keyDown('2')
+                pyautogui.keyUp('2')
+            time.sleep(0.5)
+
         time.sleep(0.5)
+        if i == 3 or i == 4:
+            time.sleep(0.5)
     
     #抬头以方便后续模板匹配
+    time.sleep(2)
     pydirectinput.moveRel(0, -2500, duration=0.2, relative=True)
+    pyautogui.keyDown('s')
+    time.sleep(0.5)
+    pyautogui.keyUp('s')
     pyautogui.keyDown('ctrl')
     pyautogui.keyUp('ctrl')
     time.sleep(0.2)
@@ -252,6 +288,11 @@ for k in range(8): #160树脂，20一次，共8次
     pyautogui.keyDown('w')
     time.sleep(9)
     pyautogui.keyUp('w')
+    pyautogui.keyDown('a')
+    pyautogui.keyUp('a')
+    time.sleep(0.1)
+    pyautogui.keyDown('d')
+    pyautogui.keyUp('d')
     time.sleep(1)
     pyautogui.keyDown('f')
 
