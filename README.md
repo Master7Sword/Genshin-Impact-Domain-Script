@@ -1,6 +1,8 @@
 # Genshin-Impact-Domain-Script
 ## 简介
 基于 pyautogui 和 OpenCV 的原神全自动通关秘境的脚本框架
+
+实机演示：https://www.bilibili.com/video/BV1PC4y1S7nu/
 ## 流程
 1. 初始视角回正
 2. 自动打开背包吃攻击/防御药
